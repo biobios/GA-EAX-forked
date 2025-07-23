@@ -79,9 +79,9 @@ void TKopt::SetInvNearList()
 
   for( int i = 0; i < fN; ++i ){ 
     for( int k = 0; k < 50; ++k ){ 
-      c = eval->fNearCity[i][k];
+      c = eval->fNearCity[i][k]; // 都市iのk番目に近い都市cを取り出す
       if( fNumOfINL[c] < 500 )
-	fInvNearList[ c ][ fNumOfINL[c]++ ] = i;  
+	fInvNearList[ c ][ fNumOfINL[c]++ ] = i; // 都市cを近傍50都市に含むなら都市iを記録する
       else{
 	printf( "Check fNumOfINL[c] < 500 ) in kopt.cpp \n" );
 	fflush( stdout );
@@ -97,6 +97,9 @@ void TKopt::TransIndiToTree( TIndi& indi )
   int size;
   int orient;
 
+  // 少なくとも個体が初期化されたときdoubly linked listのどちらかをたどれば一周するようになっている
+  
+  // fArrayはパス表現
   fArray[1] = 0; 
   for( int i = 2; i <= fN; ++i )
     fArray[i] = indi.fLink[ fArray[i-1] ][ 1 ]; 
@@ -117,10 +120,13 @@ void TKopt::TransIndiToTree( TIndi& indi )
     fLink[ fArray[ num ] ][ 1 ] = fArray[ num+1 ];
     fOrdCity[ fArray[ num ] ] = size;
     fSegCity[ fArray[ num ] ] = fNumOfSeg;
+    
+    // セグメントのはじめを記録する
     fCitySeg[ fNumOfSeg ][ this->Turn(orient) ] = fArray[ num ];
     ++num;
     ++size;
 
+    // fArrayのnum ~ num + sqrt(fN) - 1までの都市を順番にリンクする
     for( int i = 0; i < (int)sqrt( fN )-1; ++i )
     {
       if( num == fN )
@@ -133,6 +139,8 @@ void TKopt::TransIndiToTree( TIndi& indi )
       ++size;
     }
 
+    // おそらくセグメントは2つ以上の都市から構成されなければいけないので
+    // 一つあまったらまとめてリンクする
     if( num == fN-1 ){
       fLink[ fArray[ num ] ][ 0 ] = fArray[ num-1 ];
       fLink[ fArray[ num ] ][ 1 ] = fArray[ num+1 ];
@@ -142,10 +150,13 @@ void TKopt::TransIndiToTree( TIndi& indi )
       ++size;
     }
     
+    // sqrt(fN)個ずつでリンクしている？
     fLink[ fArray[ num ] ][ 0 ] = fArray[ num-1 ];
     fLink[ fArray[ num ] ][ 1 ] = -1;
     fOrdCity[ fArray[ num ] ] = size;
     fSegCity[ fArray[ num ] ] = fNumOfSeg;
+    
+    // セグメントの終わりを記録する
     fCitySeg[ fNumOfSeg ][ orient ] = fArray[ num ];
     ++num;
     ++size;
@@ -158,6 +169,7 @@ void TKopt::TransIndiToTree( TIndi& indi )
   }
 
 
+  // セグメント同士のつながりを記録する
   for( int s = 1; s < fNumOfSeg-1; ++s ){
     fLinkSeg[ s ][ 0 ] = s-1;
     fLinkSeg[ s ][ 1 ] = s+1;
@@ -211,34 +223,42 @@ LLL1: t1_st = rand()%fN;
 
   while(1)   // t1's loop
   {
+    // fT[1]を一つ進める
     fT[1] = this->GetNext( fT[1] );
     if( fActiveV[ fT[1] ] == 0 )
       goto EEE;
     
     ////
     fFlagRev = 0;
+    // ひとつ前を取得
     fT[2] = this->GetPrev( fT[1] );
     for( int num1 = 1; num1 < 50; ++num1 )
     {
+      // fT[1]の近傍
       fT[4] = eval->fNearCity[ fT[1] ][ num1 ]; 
+      // 近傍の一つ前を取得
       fT[3] = this->GetPrev( fT[4] );
+      // fT[1]とfT[2]の辺の長さからfT[1]とfT[4]の辺の長さを引く
+      // どれだけ短くなるか
       dis1 = eval->fEdgeDis[fT[1]][fT[2]] - eval->fEdgeDis[fT[1]][fT[4]];
 
       if( dis1 > 0 ){
-	dis2 = dis1 + 
+        // 切断された方をつなげた場合どのくらい短くなるか
+	      dis2 = dis1 + 
                eval->fEdgeDis[fT[3]][fT[4]] - eval->fEdgeDis[fT[3]][fT[2]];
  
-	if( dis2 > 0 ){
-	  this->IncrementImp( fFlagRev );
+	      if( dis2 > 0 ){ // 短くなるなら
+	        this->IncrementImp( fFlagRev );
 
-	  for( int a = 1; a <= 4; ++a )
-	    for( int k = 0; k < fNumOfINL[fT[a]]; ++k )
-	      fActiveV[ this->fInvNearList[fT[a]][k] ] = 1;
-	  
-	  goto LLL1;
-	}
+          // fT[1],fT[2],fT[3],fT[4]を近傍50都市に含む都市をアクティブにする
+	        for( int a = 1; a <= 4; ++a )
+	          for( int k = 0; k < fNumOfINL[fT[a]]; ++k )
+	            fActiveV[ this->fInvNearList[fT[a]][k] ] = 1;
+        
+	        goto LLL1; // 更新したら最初から
+	      }
       }
-      else break;
+      else break; // 短くならなかったらbreak
     }
 
     ////
@@ -251,24 +271,26 @@ LLL1: t1_st = rand()%fN;
       dis1 = eval->fEdgeDis[fT[1]][fT[2]] - eval->fEdgeDis[fT[1]][fT[4]];
 
       if( dis1 > 0 ){
-	dis2 = dis1 + 
+	      dis2 = dis1 + 
                eval->fEdgeDis[fT[3]][fT[4]] - eval->fEdgeDis[fT[3]][fT[2]];
  
-	if( dis2 > 0 ){
-	  this->IncrementImp( fFlagRev );
-	  
-	  for( int a = 1; a <= 4; ++a )
-	    for( int k = 0; k < fNumOfINL[fT[a]]; ++k )
-	      fActiveV[ this->fInvNearList[fT[a]][k] ] = 1;
+	      if( dis2 > 0 ){
+	        this->IncrementImp( fFlagRev );
+        
+	        for( int a = 1; a <= 4; ++a )
+	          for( int k = 0; k < fNumOfINL[fT[a]]; ++k )
+	            fActiveV[ this->fInvNearList[fT[a]][k] ] = 1;
 
-	  goto LLL1;
-	}
+	        goto LLL1;
+	      }
       }
       else break;
     }
 
+    // 更新されなかったら非アクティブにする
     fActiveV[ fT[1] ] = 0;
   EEE:;
+    // 1周?したら終了
     if( fT[1] == t1_st ) 
       break;
   }
@@ -279,14 +301,17 @@ int TKopt::GetNext( int t )
 {
   int t_n, seg, orient;
 
+  // tのセグメント番号を取得
   seg = fSegCity[ t ];
+  // セグメントの向きを取得?
   orient = fOrient[ seg ];
 
   t_n = fLink[ t ][ orient ];
-  if( t_n == -1 ){
+  if( t_n == -1 ){ // セグメントの終端だったら
     seg = fLinkSeg[ seg ][ orient ];
     orient = Turn( fOrient[ seg ] );
     t_n = fCitySeg[ seg ][ orient ];
+    // 次のセグメントの端を返す
   }
   return t_n;
 }
@@ -330,6 +355,7 @@ int TKopt::Turn( int &orient )
 void TKopt::IncrementImp( int flagRev )
 {
   int t1_s, t1_e, t2_s, t2_e;
+  // 所属するセグメント番号
   int seg_t1_s, seg_t1_e, seg_t2_s, seg_t2_e;
   int ordSeg_t1_s, ordSeg_t1_e, ordSeg_t2_s, ordSeg_t2_e;
   int orient_t1_s, orient_t1_e, orient_t2_s, orient_t2_e;
@@ -373,8 +399,10 @@ void TKopt::IncrementImp( int flagRev )
   orient_t2_e = fOrient[ seg_t2_e ];
   
   //////////////////// Type1 ////////////////////////
+  // すべて同じセグメントに所属しているなら
   if( ( seg_t1_s == seg_t1_e ) && ( seg_t1_s == seg_t2_s ) && ( seg_t1_s == seg_t2_e ) ){ 
 
+    // もしt1_sとt1_eの向きが逆なら
     if( (fOrient[seg_t1_s] == 1 && (fOrdCity[ t1_s ] > fOrdCity[ t1_e ])) || 
         (fOrient[seg_t1_s] == 0 && (fOrdCity[ t1_s ] < fOrdCity[ t1_e ]))){
       this->Swap( t1_s, t2_s );
@@ -392,15 +420,17 @@ void TKopt::IncrementImp( int flagRev )
 
     while(1)
     {
+      // 隣接都市のリンクを入れ替える
       this->Swap( fLink[curr][0], fLink[curr][1] );
       fOrdCity[ curr ] = ord;
       if( curr == t1_e )
-	break;
+	      break;
+      // 入れ替えたので逆向きに進む
       curr = fLink[curr][Turn(orient_t1_s)];
       if( orient_t1_s == 0 )
-	++ord;
+	      ++ord;
       else 
-	--ord;
+	      --ord;
     }
 
     fLink[t2_e][orient_t1_s] = t1_e;
@@ -856,6 +886,7 @@ void TKopt::MakeRandSol( TIndi& indi )
   for( int j = 0; j < fN; ++j ) 
     fB[j] = j;
 
+  // すべての都市リストからランダムに都市を選び、順番にfGeneに格納する
   for( int i = 0; i < fN; ++i )
   {  
     r = rand() % (fN-i);
@@ -863,16 +894,19 @@ void TKopt::MakeRandSol( TIndi& indi )
     fB[r] = fB[fN-i-1];
   }
    
+  // fGeneを用いて、隣接リストを構築する
   for( int j2 = 1 ; j2 < fN-1; ++j2 )
   {
     indi.fLink[fGene[j2]][0] = fGene[j2-1];
     indi.fLink[fGene[j2]][1] = fGene[j2+1];
   }
+  // 最初と最後の都市は、環状にリンクする
   indi.fLink[fGene[0]][0] = fGene[fN-1];
   indi.fLink[fGene[0]][1] = fGene[1];  
   indi.fLink[fGene[fN-1]][0] = fGene[fN-2];
   indi.fLink[fGene[fN-1]][1] = fGene[0]; 
 
+  // 距離を計算
   eval->DoIt( indi );
 }
 

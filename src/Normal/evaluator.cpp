@@ -183,11 +183,13 @@ void TEvaluator::DoIt( TIndi& indi )
 {
   int d;
   d = 0;  
+  // つながっている２つの辺の距離を足す
   for( int i = 0; i < Ncity; ++i )
   {  
     d = d + fEdgeDis[ i ][ indi.fLink[i][0] ];
     d = d + fEdgeDis[ i ][ indi.fLink[i][1] ];
   }
+  // 同じ辺が２回ずつ数えられているので、半分にする
   indi.fEvaluationValue = d/2;
 }
 

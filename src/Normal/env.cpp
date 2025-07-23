@@ -30,6 +30,7 @@ TEnvironment::~TEnvironment()
 void TEnvironment::Define()
 {
   fEvaluator->SetInstance( fFileNameTSP );
+  // 都市数
   int N = fEvaluator->Ncity;
 
   fIndexForMating = new int [ fNumOfPop + 1 ];  

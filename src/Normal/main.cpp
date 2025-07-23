@@ -8,9 +8,11 @@
 
 int main( int argc, char* argv[] )
 {
+  // 試行回数
   int maxNumOfTrial;
   
   sscanf( argv[1], "%d", &maxNumOfTrial );
+  // 出力ファイル名
   char* dstFile = argv[2];
   
   TEnvironment* gEnv = NULL;
