@@ -394,7 +394,7 @@ void TCross::SetABcycle( const TIndi& tPa1, const TIndi& tPa2, int flagC[ 10 ], 
 	        {
 	          if((fPosiCurr-check_koritsu[st])%2==0) // 差が偶数なら(ABサイクルを形成するなら)
 	          {
-	            if(near_data[st][fPosiCurr%2+1]==pr) // スタートの小さいほうがprなら入れ替える
+	            if(near_data[st][fPosiCurr%2+1]==pr) // スタートの小さいほうがprなら入れ替える(来た道を後ろに持っていく)
 	            {
 		            this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]);
 	            }
@@ -409,7 +409,8 @@ void TCross::SetABcycle( const TIndi& tPa1, const TIndi& tPa2, int flagC[ 10 ], 
 	          }
 	          else
 	          {
-	            this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]);// この交換は意味ある?
+              // 今通ってきた都市を後ろに持っていく
+	            this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]);
 	            pr_type=2;
 	          }
 	          check_koritsu[st]=fPosiCurr;
@@ -436,7 +437,7 @@ void TCross::SetABcycle( const TIndi& tPa1, const TIndi& tPa2, int flagC[ 10 ], 
 	      }
 	      else if(check_koritsu[ci]>0) // すでに通ったことがあるとき
 	      {
-	        this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]); 
+	        this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]); // ここも必要?
 	        if((fPosiCurr-check_koritsu[ci])%2==0) // 差が偶数なら(ABサイクルを形成するなら)
 	        {
 	          st_appear = 1;
@@ -450,9 +451,13 @@ void TCross::SetABcycle( const TIndi& tPa1, const TIndi& tPa2, int flagC[ 10 ], 
 	        }
 	        else
 	        {
+            // 処理の途中で、2辺持っている都市が一つもなくなったとき、
+            // 処理を中断するので、直近でたどった方を後ろ側に持っていく必要がある
+            // つまりこの処理は必要
 	          this->Swap(near_data[ci][(fPosiCurr+1)%2+1],near_data[ci][(fPosiCurr+1)%2+3]); 
 	          pr_type=3;
-	        }  
+            // pr_type = 1;
+	        }
 	      }
       }
       else if(near_data[ci][0]==1) // 辺が１本のとき?
