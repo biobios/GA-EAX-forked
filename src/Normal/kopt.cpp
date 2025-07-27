@@ -352,6 +352,7 @@ int TKopt::Turn( int &orient )
     assert( 1 == 2 );
 }
 
+// パスをセグメントで分割し、回転のコストを小さくしている
 void TKopt::IncrementImp( int flagRev )
 {
   int t1_s, t1_e, t2_s, t2_e;
@@ -368,6 +369,14 @@ void TKopt::IncrementImp( int flagRev )
   int length_t1s_seg;  
   int length_t1e_seg;
   int seg;
+  
+  // flagRev == 0
+  // fT[2] -> fT[1]
+  // fT[3] -> fT[4]
+  
+  // flagRev == 1
+  // fT[1] -> fT[2]
+  // fT[4] -> fT[3]
 
   // Seg1: b->d path
   // Seg2: c->a path
@@ -384,6 +393,14 @@ void TKopt::IncrementImp( int flagRev )
     t2_s = fT[3];
     t2_e = fT[1];
   }
+
+  // flagRev == 0
+  // t2_e -> t1_s
+  // t1_e -> t2_s
+
+  // flagRev == 1
+  // t2_e -> t1_s
+  // t1_e -> t2_s
   
   seg_t1_s = fSegCity[ t1_s ];
   ordSeg_t1_s = fOrdSeg[ seg_t1_s ];
@@ -403,6 +420,13 @@ void TKopt::IncrementImp( int flagRev )
   if( ( seg_t1_s == seg_t1_e ) && ( seg_t1_s == seg_t2_s ) && ( seg_t1_s == seg_t2_e ) ){ 
 
     // もしt1_sとt1_eの向きが逆なら
+    // fOrient[seg_t1_s] == 1 (->)
+    // t1_e -> t2_s -> ? -> t2_e -> t1_s
+    // だったら交換
+    //
+    // fOrient[seg_t1_s] == 0 (<-)
+    // t1_s <- t2_e <- ? <- t2_s <- t1_e
+    // だったら交換
     if( (fOrient[seg_t1_s] == 1 && (fOrdCity[ t1_s ] > fOrdCity[ t1_e ])) || 
         (fOrient[seg_t1_s] == 0 && (fOrdCity[ t1_s ] < fOrdCity[ t1_e ]))){
       this->Swap( t1_s, t2_s );
@@ -414,10 +438,15 @@ void TKopt::IncrementImp( int flagRev )
       this->Swap( orient_t1_s, orient_t2_s );
       this->Swap( orient_t1_e, orient_t2_e );
     }
+    // ->
+    // t2_e -> t1_s -> ? -> t1_e -> t2_s
+    // <-
+    // t2_s <- t1_e <- ? <- t1_s <- t2_e
 
     curr = t1_s;
     ord = fOrdCity[ t1_e ];
 
+    // t1_sからt1_eまでを逆順にする
     while(1)
     {
       // 隣接都市のリンクを入れ替える
@@ -437,6 +466,11 @@ void TKopt::IncrementImp( int flagRev )
     fLink[t2_s][Turn(orient_t1_s)] = t1_s;
     fLink[t1_s][orient_t1_s] = t2_s;
     fLink[t1_e][Turn(orient_t1_s)] = t2_e;
+    
+    // ->
+    // t2_e -> t1_e -> ? -> t1_s -> t2_s
+    // <-
+    // t2_s <- t1_s <- ? <- t1_e <- t2_e
 
     //    this->CheckDetail();              // Check
     //    this->CheckValid();               // Check
@@ -449,11 +483,17 @@ void TKopt::IncrementImp( int flagRev )
     numOfSeg1 = ordSeg_t1_e - ordSeg_t1_s + 1;
   else
     numOfSeg1 = ordSeg_t1_e - ordSeg_t1_s + 1 + fNumOfSeg;
+  
+  // numOfSeg1はt1_sからt1_eまでのセグメント数
+
   if( ordSeg_t2_e >= ordSeg_t2_s )
     numOfSeg2 = ordSeg_t2_e - ordSeg_t2_s + 1;
   else 
     numOfSeg2 = ordSeg_t2_e - ordSeg_t2_s + 1 + fNumOfSeg;
 
+  // numOfSeg2はt2_sからt2_eまでのセグメント数
+
+  // 小さいほうをSeg1にする
   if( numOfSeg1 > numOfSeg2 ){
     this->Swap( numOfSeg1, numOfSeg2 );
     this->Swap( t1_s, t2_s );
@@ -466,21 +506,27 @@ void TKopt::IncrementImp( int flagRev )
     this->Swap( orient_t1_e, orient_t2_e );
   }
 
-  if( fLink[ t2_e ][ orient_t2_e ] == -1 ) flag_t2e_t1s = 1;
+  // t2_eがセグメントの終端なら
+  if( fLink[ t2_e ][ orient_t2_e ] == -1 ) flag_t2e_t1s = 1; // t2_eとt1_sは異なるセグメントにいる
   else flag_t2e_t1s = 0;
-  if( fLink[ t2_s ][ this->Turn(orient_t2_s) ] == -1 ) flag_t2s_t1e = 1;
+
+  // t2_sがセグメントの始端なら
+  if( fLink[ t2_s ][ this->Turn(orient_t2_s) ] == -1 ) flag_t2s_t1e = 1; // t2_sとt1_eは異なるセグメントにいる
   else flag_t2s_t1e = 0;
 
+  // t1_sが所属しているセグメントの残りの長さ
   length_t1s_seg = abs( fOrdCity[ t2_e ] 
                       - fOrdCity[ fCitySeg[ seg_t2_e ][ orient_t2_e ] ] );
+  // t1_eが所属しているセグメントの残りの長さ
   length_t1e_seg = abs( fOrdCity[ t2_s ] 
           - fOrdCity[ fCitySeg[ seg_t2_s ][ this->Turn(orient_t2_s) ] ] );
   
   ///////////////////// Type2 /////////////////
-  if( seg_t1_s == seg_t1_e )
+  if( seg_t1_s == seg_t1_e ) // Seg1が一つのセグメントに包含されているなら
   {
-    if( flag_t2e_t1s == 1 && flag_t2s_t1e == 1 )
+    if( flag_t2e_t1s == 1 && flag_t2s_t1e == 1 ) // Seg1 がちょうどセグメントと同じなら
     {
+      // セグメントの向きを変える
       orient_t1_s = Turn( fOrient[ seg_t1_s ] ); 
       fOrient[ seg_t1_s ] = orient_t1_s;
       fCitySeg[ seg_t1_s ][ orient_t1_s ] = t1_s;
@@ -493,21 +539,22 @@ void TKopt::IncrementImp( int flagRev )
       return;
     }
     
-    if( flag_t2e_t1s == 0 && flag_t2s_t1e == 1 )
+    if( flag_t2e_t1s == 0 && flag_t2s_t1e == 1 ) // Seg1の終端がセグメントの終端と一致しているなら
     {
+      // t1_s ~ t1_eを逆順にする
       curr = t1_e;
       ord = fOrdCity[ t1_s ];
       while(1)
       {
-	this->Swap( fLink[curr][0], fLink[curr][1] );
-	fOrdCity[ curr ] = ord;
-	if( curr == t1_s )
-	  break;
-	curr = fLink[curr][orient_t2_e];
-	if( orient_t2_e == 0 )
-	  --ord;
-	else
-	  ++ord;
+	      this->Swap( fLink[curr][0], fLink[curr][1] );
+	      fOrdCity[ curr ] = ord;
+	      if( curr == t1_s )
+	        break;
+	      curr = fLink[curr][orient_t2_e];
+	      if( orient_t2_e == 0 )
+	        --ord;
+	      else
+	        ++ord;
       }
 
       fLink[t2_e][orient_t2_e] = t1_e;
@@ -521,8 +568,9 @@ void TKopt::IncrementImp( int flagRev )
       return;
     }
 
-    if( flag_t2e_t1s == 1 && flag_t2s_t1e == 0 )
+    if( flag_t2e_t1s == 1 && flag_t2s_t1e == 0 ) // Seg1の始端がセグメントの始端と一致しているなら
     {
+      // t1_s ~ t1_eを逆順にする
       curr = t1_s;
       ord = fOrdCity[ t1_e ];
       while(1)
@@ -552,14 +600,27 @@ void TKopt::IncrementImp( int flagRev )
 
 
   ///////////////////// Type3 /////////////////
+  
+  // セグメントのつながり方
+  // seg_t1_s -> ? -> seg_t1_e -> seg_t2_s -> ? -> seg_t2_e -> seg_t1_s
 
-  if( flag_t2e_t1s == 1 ){
+  if( flag_t2e_t1s == 1 ){ // (Seg1が複数のセグメントにまたがっていて) t1_sがセグメントの始端なら
     fLinkSeg[seg_t1_s][Turn(orient_t1_s)] = seg_t2_s;
+    // ->
+    // seg_t1_s -> ? -> seg_t1_e -> seg_t2_s -> ? -> seg_t2_e -> seg_t1_s
+    // <-
+    // seg_t1_s <- ? <- seg_t1_e <- seg_t2_s <- ? <- seg_t2_e
+    //                                       <- seg_t1_s
   }
   else
   {
+    // t1_sがセグメントの始端ではなく、t2_eとt1_sが同じセグメントに所属しているなら
+    // seg_t2_e_t1_s -> ? -> seg_t1_e -> seg_t2_s -> ? -> seg_t2_e_t1_s
+
+    // セグメントを分割する(t2_eをセグメントの終端、t1_sをセグメントの始端とする)
     seg_t1_s = fNumOfSeg++;
     orient_t1_s = orient_t2_e;
+    // 都市間のリンクを解除
     fLink[ t1_s ][Turn(orient_t1_s)] = -1;
     fLink[ fCitySeg[seg_t2_e][orient_t2_e]][orient_t1_s] = -1;
     fOrient[seg_t1_s] = orient_t1_s;
@@ -568,15 +629,24 @@ void TKopt::IncrementImp( int flagRev )
     fCitySeg[seg_t1_s][orient_t1_s] = fCitySeg[seg_t2_e][orient_t2_e];
     fLinkSeg[seg_t1_s][Turn(orient_t1_s)] = seg_t2_s;
     fLinkSeg[seg_t1_s][orient_t1_s] = fLinkSeg[seg_t2_e][orient_t2_e];
+    // seg_t2_e -> seg -> ? -> seg_t1_e -> seg_t2_s -> ? -> seg_t2_e
+    // seg_t1_s ->                                  <- seg_t1_s
     seg = fLinkSeg[seg_t2_e][orient_t2_e];
+    // seg_t2_e_t1_s -> seg -> ? -> seg_t1_e -> seg_t2_s -> ? -> seg_t2_e_t1_s
     fLinkSeg[seg][Turn(fOrient[seg])] = seg_t1_s;
+    // seg_t1_s <- seg <- ? <- seg_t1_e <- seg_t2_s <- ? <- seg_t2_e
+    //                                              <- seg_t1_s 
   }
 
-  if( flag_t2s_t1e == 1 ){
+  if( flag_t2s_t1e == 1 ){ // (Seg1が複数のセグメントにまたがっていて) t1_eがセグメントの終端なら
     fLinkSeg[seg_t1_e][orient_t1_e] = seg_t2_e;
+    // seg_t1_s -> ? -> seg_t1_e -> seg_t2_e -> seg_t1_s
+    //             seg_t2_s -> ? ->
   }
   else
   {
+    // t1_eがセグメントの終端ではなく、t2_sとt1_eが同じセグメントに所属しているなら
+    // セグメントを分割する(t2_sをセグメントの始端、t1_eをセグメントの終端とする)
     seg_t1_e = fNumOfSeg++;
     orient_t1_e = orient_t2_s;
     fLink[ t1_e ][orient_t1_e] = -1;
@@ -590,16 +660,27 @@ void TKopt::IncrementImp( int flagRev )
     seg = fLinkSeg[seg_t2_s][Turn(orient_t2_s)];
     fLinkSeg[seg][fOrient[seg]] = seg_t1_e;
   }
+  // seg_t1_s -> ? -> seg_t1_e -> seg_t2_e -> seg_t1_s
+  //             seg_t2_s -> ? ->
+  // seg_t1_s <- ? <- seg_t1_e <- seg_t2_s <- ? <- seg_t2_e
+  //                                       <- seg_t1_s
 
+  // t2_eとt1_s間でリンクは切れているはずなので
   fLink[t2_e][orient_t2_e] = -1;
+
   fSizeSeg[seg_t2_e] -= length_t1s_seg;
   fCitySeg[seg_t2_e][orient_t2_e] = t2_e;
   fLinkSeg[seg_t2_e][orient_t2_e] = seg_t1_e;
+  // seg_t1_s -> ? -> seg_t1_e -> seg_t2_e -> seg_t1_e
+  //             seg_t2_s -> ? ->
   fLink[t2_s][Turn(orient_t2_s)] = -1;
   fSizeSeg[seg_t2_s] -= length_t1e_seg;
   fCitySeg[seg_t2_s][Turn(orient_t2_s)] = t2_s;
   fLinkSeg[seg_t2_s][Turn(orient_t2_s)] = seg_t1_s;
+  // seg_t1_s <- seg_t2_s <- seg_t1_s <- ? <- seg_t1_e
+  //                      <- ? <- seg_t2_e
 
+  // seg_t1_s ~ seg_t1_eの向きを変える
   seg = seg_t1_e;
   while(1)
   {
@@ -608,18 +689,27 @@ void TKopt::IncrementImp( int flagRev )
       break;
     seg = fLinkSeg[seg][fOrient[seg]];
   }
+  // seg_t1_e -> ? -> seg_t1_s -> seg_t2_s -> ? -> seg_t2_e -> seg_t1_e
+  // seg_t1_s <- seg_t2_s <- ? <- seg_t2_e <- seg_t1_e <- ? <- seg_t1_s
   
 
-  if( fSizeSeg[seg_t2_e] < length_t1s_seg )
+  if( fSizeSeg[seg_t2_e] < length_t1s_seg ) // seg_t2_eのながさがseg_t1_sの残りの長さよりも長いなら
   {  
     seg = fLinkSeg[seg_t2_e][Turn(fOrient[seg_t2_e])];
     fLinkSeg[seg][fOrient[seg]] = seg_t1_s;
+    // seg_t2_e -> seg_t1_e -> ? -> (seg_t1_s -> seg_t2_s -> ? -> seg -> seg_t1_s)
     seg = fLinkSeg[seg_t2_e][fOrient[seg_t2_e]];
     fLinkSeg[seg][Turn(fOrient[seg])] = seg_t1_s;
+    // seg_t1_s <- seg_t2_s <- ? <- seg_t2_e
+    //          <- seg_t1_e <- ? <- seg_t1_s
     seg = fLinkSeg[seg_t1_s][Turn(fOrient[seg_t1_s])];
     fLinkSeg[seg][fOrient[seg]] = seg_t2_e;
+    // seg_t1_s -> seg_t2_s -> ? -> seg_t1_s
+    // seg_t2_e -> seg_t1_e -> ? -> seg -> seg_t2_e
     seg = fLinkSeg[seg_t1_s][fOrient[seg_t1_s]];
     fLinkSeg[seg][Turn(fOrient[seg])] = seg_t2_e;
+    // seg_t1_s <- seg_t1_e <- ? <- seg_t1_s
+    // seg_t2_e <- seg_t2_s <- ? <- seg_t2_e
     
     this->Swap( fOrient[seg_t2_e], fOrient[seg_t1_s] );
     this->Swap( fSizeSeg[seg_t2_e], fSizeSeg[seg_t1_s] );
@@ -653,6 +743,7 @@ void TKopt::IncrementImp( int flagRev )
 
   while( fNumOfSeg > fFixNumOfSeg )
   {
+    // 最後のセグメントがつながっているもののうち、長さが短いほうをマージする
     if( fSizeSeg[ fLinkSeg[fNumOfSeg-1][0] ] < 
         fSizeSeg[ fLinkSeg[fNumOfSeg-1][1] ] )  
       this->CombineSeg( fLinkSeg[fNumOfSeg-1][0], fNumOfSeg-1 );
@@ -663,6 +754,7 @@ void TKopt::IncrementImp( int flagRev )
   int ordSeg = 0;
   seg = 0;
 
+  // セグメントの順序を設定しなおす
   while(1)
   {
     fOrdSeg[seg] = ordSeg;

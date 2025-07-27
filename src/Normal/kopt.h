@@ -88,7 +88,7 @@ private:
   int *fSegCity;   
   // 各セグメント内での都市の順序を記録する
   int *fOrdCity;   
-
+  // セグメントの順序を記録する
   int *fOrdSeg;    
   // 各セグメントの向きを記録する
   int *fOrient;    
