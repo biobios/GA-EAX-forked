@@ -149,7 +149,8 @@ void TCross::SetParents( const TIndi& tPa1, const TIndi& tPa2, int flagC[ 10 ], 
 {
   this->SetABcycle( tPa1, tPa2, flagC, numOfKids ); 
 
-  fDis_AB = 0;   
+  // 親の間で異なる枝の本数
+  fDis_AB = 0;
 
   int curr, next, st, pre;
   st = 0;
@@ -181,7 +182,7 @@ void TCross::SetParents( const TIndi& tPa1, const TIndi& tPa2, int flagC[ 10 ], 
 }
 
 
-void TCross::DoIt( TIndi& tKid, TIndi& tPa2, int numOfKids, int flagP, int flagC[ 10 ], int **fEdgeFreq )
+void TCross::DoIt( TIndi& tKid, TIndi& tPa2, int numOfKids, int flagP/*1*/, int flagC[ 10 ], int **fEdgeFreq )
 {
   int Num;     
   int jnum, centerAB; 
@@ -196,6 +197,7 @@ void TCross::DoIt( TIndi& tKid, TIndi& tPa2, int numOfKids, int flagP, int flagC
   assert( fEvalType == 1 || fEvalType == 3 || fEvalType == 4 );
   assert( fEsetType == 1 || fEsetType == 2 );
 
+  // 作成する子供の数を決定する
   if ( numOfKids <= fNumOfABcycle ) 
     Num = numOfKids;
   else 
@@ -220,6 +222,7 @@ void TCross::DoIt( TIndi& tKid, TIndi& tPa2, int numOfKids, int flagP, int flagC
   { 
     fNumOfABcycleInEset = 0;
     if( fEsetType == 1 ){         /* Single-AB */
+      // ランダムなインデックス配列から一つとりだして、そのABサイクルを採用する
       jnum = fPermu[ j ];
       fABcycleInEset[ fNumOfABcycleInEset++ ] = jnum; 
     }
@@ -227,14 +230,14 @@ void TCross::DoIt( TIndi& tKid, TIndi& tPa2, int numOfKids, int flagP, int flagC
       jnum = fPermu[ j ];
       centerAB = jnum;
       for( int s = 0; s < fNumOfABcycle; ++s ){ 
-	if( s == centerAB )
-	  fABcycleInEset[ fNumOfABcycleInEset++ ] = s; 
-	else{
-	  if( fWeight_RR[ centerAB ][ s ] > 0 && fABcycle[ s ][ 0 ] < fABcycle[ centerAB ][ 0 ] ){
-	    if( rand() %2 == 0 )
-	      fABcycleInEset[ fNumOfABcycleInEset++ ] = s; 
-	  }
-	}
+	      if( s == centerAB )
+	        fABcycleInEset[ fNumOfABcycleInEset++ ] = s; 
+	      else{
+	        if( fWeight_RR[ centerAB ][ s ] > 0 && fABcycle[ s ][ 0 ] < fABcycle[ centerAB ][ 0 ] ){
+	          if( rand() %2 == 0 )
+	            fABcycleInEset[ fNumOfABcycleInEset++ ] = s; 
+	        }
+	      }
       }
       this->Search_Eset( centerAB );    
     }
@@ -255,7 +258,8 @@ void TCross::DoIt( TIndi& tKid, TIndi& tPa2, int numOfKids, int flagP, int flagC
 
     this->MakeUnit();                                   
     this->MakeCompleteSol( tKid );                      
-    gain += fGainModi;                                  
+    // 部分巡回路のマージでの距離の変化を加算
+    gain += fGainModi;
     
     ++fNumOfGeneratedCh;
 
@@ -276,21 +280,21 @@ void TCross::DoIt( TIndi& tKid, TIndi& tPa2, int numOfKids, int flagP, int flagC
     
     // if( pointMax < point ){
     if( pointMax < point && (2 * fBest_Num_E < fDis_AB || 
-			     tKid.fEvaluationValue != tPa2.fEvaluationValue ) ){   
+			     tKid.fEvaluationValue != tPa2.fEvaluationValue ) ){
       pointMax = point;
-      BestGain = gain;        
+      BestGain = gain;
       fFlagImp = 1;  
 
       fNumOfBestAppliedCycle = fNumOfAppliedCycle;
       for( int s = 0; s < fNumOfBestAppliedCycle; ++s )
-	fBestAppliedCylce[ s ] = fAppliedCylce[ s ];
+	      fBestAppliedCylce[ s ] = fAppliedCylce[ s ];
       
       fNumOfBestModiEdge = fNumOfModiEdge;	  	
       for( int s = 0; s < fNumOfBestModiEdge; ++s ){
-	fBestModiEdge[ s ][ 0 ] = fModiEdge[ s ][ 0 ];
-	fBestModiEdge[ s ][ 1 ] = fModiEdge[ s ][ 1 ];
-	fBestModiEdge[ s ][ 2 ] = fModiEdge[ s ][ 2 ];
-	fBestModiEdge[ s ][ 3 ] = fModiEdge[ s ][ 3 ];
+	      fBestModiEdge[ s ][ 0 ] = fModiEdge[ s ][ 0 ];
+	      fBestModiEdge[ s ][ 1 ] = fModiEdge[ s ][ 1 ];
+	      fBestModiEdge[ s ][ 2 ] = fModiEdge[ s ][ 2 ];
+	      fBestModiEdge[ s ][ 3 ] = fModiEdge[ s ][ 3 ];
       }	
 
     }
@@ -299,8 +303,8 @@ void TCross::DoIt( TIndi& tKid, TIndi& tPa2, int numOfKids, int flagP, int flagC
     tKid.fEvaluationValue = tKid.fEvaluationValue + gain;
   }
 
-  if( fFlagImp == 1 ){           
-    this->GoToBest( tKid ); 
+  if( fFlagImp == 1 ){
+    this->GoToBest( tKid );
     tKid.fEvaluationValue = tKid.fEvaluationValue - BestGain;
     this->IncrementEdgeFreq( fEdgeFreq );
   }
@@ -330,9 +334,11 @@ void TCross::SetABcycle( const TIndi& tPa1, const TIndi& tPa2, int flagC[ 10 ], 
   }
 
   /**************************************************/
+  // koritsu_many = fN;
 
   fNumOfABcycle=0; 
-  flag_st=1;                   
+  // スタートフラグ?
+  flag_st=1;
   while(koritsu_many!=0)
   {                                                               
     if(flag_st==1)          
@@ -359,108 +365,125 @@ void TCross::SetABcycle( const TIndi& tPa1, const TIndi& tPa2, int flagC[ 10 ], 
       switch(pr_type)
       {
       case 1:                 
-	ci=near_data[pr][fPosiCurr%2+1];
-	break;
-      case 2:   
-	r=rand()%2;
-	ci=near_data[pr][fPosiCurr%2+1+2*r];
-	if(r==0) this->Swap(near_data[pr][fPosiCurr%2+1],near_data[pr][fPosiCurr%2+3]);
-	break;
+        // [1](Pa1) or [2](Pa2)
+        // 偶数番目ならPa1から選び、奇数番目ならPa2から選ぶ
+	      ci=near_data[pr][fPosiCurr%2+1];
+	      break;
+      case 2:
+	      r=rand()%2;
+        // [1] or [2] or [3] or [4]
+        // 偶数番目ならPa1から選び、奇数番目ならPa2から選ぶ
+	      ci=near_data[pr][fPosiCurr%2+1+2*r];
+        // [1] または [2] から選択したなら、選択した方を後ろに持っていく
+	      if(r==0) this->Swap(near_data[pr][fPosiCurr%2+1],near_data[pr][fPosiCurr%2+3]);
+	      break;
       case 3:   
-	ci=near_data[pr][fPosiCurr%2+3];
+        // [3](Pa1) or [4](Pa2)
+        // 偶数番目ならPa1から選び、奇数番目ならPa2から選ぶ
+	      ci=near_data[pr][fPosiCurr%2+3];
       }
 
+      // 選んだ都市をfRouteに追加
       fRoute[fPosiCurr]=ci;
       
       if(near_data[ci][0]==2) 
       {   
-	if(ci==st)            
-	{        
-	  if(check_koritsu[st]==0) 
-	  {        
-	    if((fPosiCurr-check_koritsu[st])%2==0)  
-	    {                  
-	      if(near_data[st][fPosiCurr%2+1]==pr)
-	      {
-		this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]); 
+	      if(ci==st) // スタート地点に戻った時
+	      {        
+	        if(check_koritsu[st]==0) // 前回stを通ったのが最初であれば
+	        {
+	          if((fPosiCurr-check_koritsu[st])%2==0) // 差が偶数なら(ABサイクルを形成するなら)
+	          {
+	            if(near_data[st][fPosiCurr%2+1]==pr) // スタートの小さいほうがprなら入れ替える(来た道を後ろに持っていく)
+	            {
+		            this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]);
+	            }
+	            st_appear = 1;
+	            this->FormABcycle();
+	            if( flagC[ 1 ] == 1 && fNumOfABcycle == numOfKids ) goto LLL;
+	            if( fNumOfABcycle == fMaxNumOfABcycle ) goto LLL;
+
+	            flag_st=0;
+	            flag_circle=1;
+	            pr_type=1;
+	          }
+	          else
+	          {
+              // 今通ってきた都市を後ろに持っていく
+	            this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]);
+	            pr_type=2;
+	          }
+	          check_koritsu[st]=fPosiCurr;
+	        } 
+	        else // 前回stを通ったのが最初でなければ
+	        {
+	          st_appear = 2; // stが2回現れているというフラグ?
+	          this->FormABcycle();
+	          if( flagC[ 1 ] == 1 && fNumOfABcycle == numOfKids ) goto LLL;
+	          if( fNumOfABcycle == fMaxNumOfABcycle ) goto LLL;
+
+	          flag_st=1;
+	          flag_circle=1;
+	        }
 	      }
-	      st_appear = 1;
-	      this->FormABcycle();
-	      if( flagC[ 1 ] == 1 && fNumOfABcycle == numOfKids ) goto LLL;
-	      if( fNumOfABcycle == fMaxNumOfABcycle ) goto LLL;
-
-	      flag_st=0;
-	      flag_circle=1;
-	      pr_type=1; 
-	    }
-	    else
-	    {
-	      this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]); 
-	      pr_type=2;
-	    }
-	    check_koritsu[st]=fPosiCurr;
-	  } 
-	  else                     
-	  {         
-	    st_appear = 2;
-	    this->FormABcycle();
-	    if( flagC[ 1 ] == 1 && fNumOfABcycle == numOfKids ) goto LLL;
-	    if( fNumOfABcycle == fMaxNumOfABcycle ) goto LLL;
-
-	    flag_st=1;
-	    flag_circle=1;
-	  }
-	}
-	else if(check_koritsu[ci]==-1) 
-	{
-	  check_koritsu[ci]=fPosiCurr;
-	  if(near_data[ci][fPosiCurr%2+1]==pr)
-	  {
-	    this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]); 
-	  }
-	  pr_type=2;
-	}
-	else if(check_koritsu[ci]>0)   
-	{
-	  this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]); 
-	  if((fPosiCurr-check_koritsu[ci])%2==0)  
-	  {
-	    st_appear = 1;
-	    this->FormABcycle();
-	    if( flagC[ 1 ] == 1 && fNumOfABcycle == numOfKids ) goto LLL;
-	      if( fNumOfABcycle == fMaxNumOfABcycle ) goto LLL;
-	      
-	    flag_st=0;
-	    flag_circle=1;
-	    pr_type=1;
-	  }
-	  else
-	  {
-	    this->Swap(near_data[ci][(fPosiCurr+1)%2+1],near_data[ci][(fPosiCurr+1)%2+3]); 
-	    pr_type=3;
-	  }  
-	}
+	      else if(check_koritsu[ci]==-1) // 初めてciを通ったとき
+	      {
+	        check_koritsu[ci]=fPosiCurr;
+	        if(near_data[ci][fPosiCurr%2+1]==pr) // 通ってきた都市を後ろに持っていく
+	        {
+	          this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]); 
+	        }
+	        pr_type=2;
+	      }
+	      else if(check_koritsu[ci]>0) // すでに通ったことがあるとき
+	      {
+	        this->Swap(near_data[ci][fPosiCurr%2+1],near_data[ci][fPosiCurr%2+3]); // ここも必要?
+	        if((fPosiCurr-check_koritsu[ci])%2==0) // 差が偶数なら(ABサイクルを形成するなら)
+	        {
+	          st_appear = 1;
+	          this->FormABcycle();
+	          if( flagC[ 1 ] == 1 && fNumOfABcycle == numOfKids ) goto LLL;
+	          if( fNumOfABcycle == fMaxNumOfABcycle ) goto LLL;
+          
+	          flag_st=0;
+	          flag_circle=1;
+	          pr_type=1;
+	        }
+	        else
+	        {
+            // 処理の途中で、2辺持っている都市が一つもなくなったとき、
+            // 処理を中断するので、直近でたどった方を後ろ側に持っていく必要がある
+            // つまりこの処理は必要
+	          this->Swap(near_data[ci][(fPosiCurr+1)%2+1],near_data[ci][(fPosiCurr+1)%2+3]); 
+	          pr_type=3;
+            // pr_type = 1;
+	        }
+	      }
       }
-      else if(near_data[ci][0]==1)    
+      else if(near_data[ci][0]==1) // 辺が１本のとき?
       {
-	if(ci==st)                    
+	      if(ci==st) // スタート地点に戻ったとき
         {
-	  st_appear = 1;
-	  this->FormABcycle();
-	  if( flagC[ 1 ] == 1 && fNumOfABcycle == numOfKids ) goto LLL;
-	  if( fNumOfABcycle == fMaxNumOfABcycle ) goto LLL;
+	        st_appear = 1;
+	        this->FormABcycle();
+          // Single-ABで、ABサイクルの数が子供の数に達したら終了
+	        if( flagC[ 1 ] == 1 && fNumOfABcycle == numOfKids ) goto LLL;
 
-	  flag_st=1;
-	  flag_circle=1;
-	}
-	else pr_type=1;
+	        if( fNumOfABcycle == fMaxNumOfABcycle ) goto LLL;
+
+	        flag_st=1;
+	        flag_circle=1;
+	      }
+	      else pr_type=1;
       }
     }
   }
-                                       
+  
+  // 辺が1本の都市のみが残っているなら
+  // それをたどるだけでABサイクルを形成する
   while(bunki_many!=0)
   {            
-    fPosiCurr=0;   
+    fPosiCurr=0;
     r=rand()%bunki_many;
     st=bunki[r];
     fRoute[fPosiCurr]=st;
@@ -473,14 +496,14 @@ void TCross::SetABcycle( const TIndi& tPa1, const TIndi& tPa2, int flagC[ 10 ], 
       fPosiCurr++;
       ci=near_data[pr][fPosiCurr%2+1]; 
       fRoute[fPosiCurr]=ci;
-      if(ci==st)                       
+      if(ci==st)
       {
-	st_appear = 1;
-	this->FormABcycle();
-	if( flagC[ 1 ] == 1 && fNumOfABcycle == numOfKids ) goto LLL;
-	if( fNumOfABcycle == fMaxNumOfABcycle ) goto LLL;
-	
-	flag_circle=1;
+	      st_appear = 1;
+	      this->FormABcycle();
+	      if( flagC[ 1 ] == 1 && fNumOfABcycle == numOfKids ) goto LLL;
+	      if( fNumOfABcycle == fMaxNumOfABcycle ) goto LLL;
+
+	      flag_circle=1;
       }
     }
   }
@@ -503,11 +526,13 @@ void TCross::FormABcycle()
   int cem;                   
   int diff;
  
-  if(fPosiCurr%2==0) edge_type=1; 
-  else edge_type=2;               
+  if(fPosiCurr%2==0) edge_type=1; // 始まりがPa1の辺から始まる
+  else edge_type=2; // 始まりがPa2の辺から始まる
+
+  // stを直近に通った都市
   st=fRoute[fPosiCurr];
   cem=0;
-  fC[cem]=st;    
+  fC[cem]=st;
 
   st_count=0;
   while(1)
@@ -537,18 +562,20 @@ void TCross::FormABcycle()
     fC[cem]=ci;  
   }
 
-  if(cem==2)
+  if(cem==2) // ABサイクルが2つの都市からなるなら記録しない
     return;
 
-  fABcycle[fNumOfABcycle][0]=cem;    
+  fABcycle[fNumOfABcycle][0]=cem;
 
-  if(edge_type==2)
+  if(edge_type==2) // 始まりがPa2の辺から始まるなら
   {
+    // 始まりがPa1の辺から始まるように回転する
     stock=fC[0];
     for( int j=0;j<cem-1;j++) fC[j]=fC[j+1];
     fC[cem-1]=stock;
   }
   
+  // ABサイクルを記録
   for( int j=0;j<cem;j++) 
     fABcycle[fNumOfABcycle][j+2]=fC[j];
   fABcycle[fNumOfABcycle][1]=fC[cem-1];
@@ -563,6 +590,7 @@ void TCross::FormABcycle()
     diff = diff + eval->fEdgeDis[fC[2*j]][fC[1+2*j]]
                 - eval->fEdgeDis[fC[1+2*j]][fC[2+2*j]];
   }
+  // そのABサイクルを採用したときの距離の変化
   fGainAB[fNumOfABcycle] = diff;
   ++fNumOfABcycle;
 }
@@ -593,14 +621,27 @@ void TCross::ChangeSol( TIndi& tKid, int ABnum, int type )
   else for(j=1;j<=cem+3;j++) fC[j]=fABcycle[ABnum][j];
 
   for(j=0;j<cem/2;j++)
-  {                           
+  {
+    // j = 0のとき
+    // b1 = fC[1], r1 = fC[2], r2 = fC[3], b2 = fC[4]
+    // b1 -> r1 は Pa2 の辺
+    // r1 -> r2 は Pa1 の辺
+    // r2 -> b2 は Pa2 の辺
+    // j = 1 のとき
+    // b1 = fC[3], r1 = fC[4], r2 = fC[5], b2 = fC[6]
+    // b1 -> r1 は Pa2 の辺
+    // r1 -> r2 は Pa1 の辺
+    // r2 -> b2 は Pa2 の辺
+
     r1=fC[2+2*j];r2=fC[3+2*j];
     b1=fC[1+2*j];b2=fC[4+2*j];
 
+    // Esetを適用して辺を繋ぎ変える
     if(tKid.fLink[r1][0]==r2)
       tKid.fLink[r1][0]=b1;
     else 
       tKid.fLink[r1][1]=b1;
+
     if(tKid.fLink[r2][0]==r1) 
       tKid.fLink[r2][0]=b2;
     else
@@ -611,15 +652,15 @@ void TCross::ChangeSol( TIndi& tKid, int ABnum, int type )
     po_b1 = fInv[ b1 ]; 
     po_b2 = fInv[ b2 ]; 
     
-    if( po_r1 == 0 && po_r2 == fN-1 )
+    if( po_r1 == 0 && po_r2 == fN-1 ) // 端なら0を記録
       fSegPosiList[ fNumOfSPL++ ] = po_r1;
-    else if( po_r1 == fN-1 && po_r2 == 0 )
+    else if( po_r1 == fN-1 && po_r2 == 0 ) // 端なら0を記録
       fSegPosiList[ fNumOfSPL++ ] = po_r2;
-    else if( po_r1 < po_r2 )
+    else if( po_r1 < po_r2 ) // 端以外なら大きい方を記録
       fSegPosiList[ fNumOfSPL++ ] = po_r2;
-    else if( po_r2 < po_r1 )
+    else if( po_r2 < po_r1 ) // 端以外なら大きい方を記録
       fSegPosiList[ fNumOfSPL++ ] = po_r1;
-    else
+    else // po_r1 == po_r2
       assert( 1 == 2 );
     
     LinkBPosi[ po_r1 ][ 1 ] = LinkBPosi[ po_r1 ][ 0 ];
@@ -649,25 +690,27 @@ void TCross::MakeCompleteSol( TIndi& tKid )
 
   fGainModi = 0;         
 
-  while( fNumOfUnit != 1 )
+  while( fNumOfUnit != 1 ) // 部分巡回路が一つになるまで
   {    
-    min_unit_city = fN + 12345;
+    min_unit_city = fN + 12345; // std::numeric_limits<int>::max() の方がよさそう。というか+1でも十分だと思われる
+    // 最小の都市数のユニット(部分巡回路)を探す
     for( int u = 0; u < fNumOfUnit; ++u ) 
     {
       if( fNumOfElementInUnit[ u ] < min_unit_city )
       {
-	center_un = u;
+	      center_un = u;
         min_unit_city = fNumOfElementInUnit[ u ];
       }
     }  
 
     st = -1;
     fNumOfSegForCenter = 0;   
+    // スタートの都市を探す
     for( int s = 0; s < fNumOfSeg; ++s ){
       if( fSegUnit[ s ] == center_un ){
-	int posi = fSegment[ s ][ 0 ];
-	st = fOrder[ posi ];    
-	fSegForCenter[  fNumOfSegForCenter++ ] = s; 
+	      int posi = fSegment[ s ][ 0 ];
+	      st = fOrder[ posi ];    
+	      fSegForCenter[  fNumOfSegForCenter++ ] = s; 
       }
     } 
     assert( st != -1 );
@@ -675,6 +718,7 @@ void TCross::MakeCompleteSol( TIndi& tKid )
     curr = -1;
     next = st;
     fNumOfElementInCU = 0;
+    // スタートから都市を辿る
     while(1){ 
       pre = curr;
       curr = next;
@@ -683,12 +727,12 @@ void TCross::MakeCompleteSol( TIndi& tKid )
       ++fNumOfElementInCU;
 
       if( tKid.fLink[ curr ][ 0 ] != pre )
-	next = tKid.fLink[ curr ][ 0 ];
+	      next = tKid.fLink[ curr ][ 0 ];
       else 
-	next = tKid.fLink[ curr ][ 1 ]; 
+	      next = tKid.fLink[ curr ][ 1 ]; 
 
       if( next == st ) break;
-    }       
+    }
     fListOfCenterUnit[ fNumOfElementInCU ] = fListOfCenterUnit[ 0 ];
     fListOfCenterUnit[ fNumOfElementInCU+1 ] = fListOfCenterUnit[ 1 ];
 
@@ -704,34 +748,44 @@ void TCross::MakeCompleteSol( TIndi& tKid )
     { 
       a = fListOfCenterUnit[ s ];
 
-      for( near_num = 1; near_num <= nearMax; ++near_num )   
+      for( near_num = 1; near_num <= nearMax; ++near_num )
       {
-	c = eval->fNearCity[ a ][ near_num ];
-	if( fCenterUnit[ c ] == 0 )   
-	{
-	  for( j1 = 0; j1 < 2; ++j1 )
-	  {
-	    b = fListOfCenterUnit[ s-1+2*j1 ];
-            for( j2 = 0; j2 < 2; ++j2 )
-	    {
-	      d = tKid.fLink[ c ][ j2 ];
-	      diff = eval->fEdgeDis[a][b] + eval->fEdgeDis[c][d] -
-                     eval->fEdgeDis[a][c] - eval->fEdgeDis[b][d];
-	      if( diff > max_diff ) 
-	      { 
-	        aa = a; bb = b; a1 = c; b1 = d;
-	        max_diff = diff;
-	      }
-	      diff = eval->fEdgeDis[a][b] + eval->fEdgeDis[d][c] - 
-		     eval->fEdgeDis[a][d] - eval->fEdgeDis[b][c];
-	      if( diff > max_diff ) 
+        // aのnear_num番目の近傍都市を取得
+	      c = eval->fNearCity[ a ][ near_num ];
+	      if( fCenterUnit[ c ] == 0 ) // cがCenter Unitに所属していなければ
 	      {
-	        aa = a; bb = b; a1 = d; b1 = c;
-	        max_diff = diff;
-	      } 
-	    }
-	  }
-	}
+	        for( j1 = 0; j1 < 2; ++j1 )
+	        {
+            // b = fListOfCenterUnit[s - 1];
+            // b = fListOfCenterUnit[s + 1];
+
+            // sの前後の都市それぞれに対して行っている
+	          b = fListOfCenterUnit[ s-1+2*j1 ];
+            for( j2 = 0; j2 < 2; ++j2 )
+	          {
+              // cに接続する都市を取得
+	            d = tKid.fLink[ c ][ j2 ];
+              
+              // 繋ぎ変えたときの距離の変化を計算
+	            diff = eval->fEdgeDis[a][b] + eval->fEdgeDis[c][d] -
+                          eval->fEdgeDis[a][c] - eval->fEdgeDis[b][d];
+
+	            if( diff > max_diff ) 
+	            { 
+	              aa = a; bb = b; a1 = c; b1 = d;
+	              max_diff = diff;
+	            }
+
+	            diff = eval->fEdgeDis[a][b] + eval->fEdgeDis[d][c] - 
+		                      eval->fEdgeDis[a][d] - eval->fEdgeDis[b][c];
+	            if( diff > max_diff ) 
+	            {
+	              aa = a; bb = b; a1 = d; b1 = c;
+	              max_diff = diff;
+	            } 
+	          }
+	        }
+	      }
       }
     }
 
@@ -739,25 +793,27 @@ void TCross::MakeCompleteSol( TIndi& tKid )
       nearMax = 50;
       goto RESTART;
     }    
-    else if( a1 == -1 && nearMax == 50  )
+    else if( a1 == -1 && nearMax == 50  ) // 50近傍でも見つからなかったら
     {       
+      // ランダムに決める
       int r = rand() % ( fNumOfElementInCU - 1 );
       a = fListOfCenterUnit[ r ];
       b = fListOfCenterUnit[ r+1 ];
       for( j = 0; j < fN; ++j )
       {
-	if( fCenterUnit[ j ] == 0 )
+	      if( fCenterUnit[ j ] == 0 )
         {
-	  aa = a; bb = b;
-	  a1 = j;
-	  b1 = tKid.fLink[ j ][ 0 ];
-	  break;
-	}
+	        aa = a; bb = b;
+	        a1 = j;
+	        b1 = tKid.fLink[ j ][ 0 ];
+	        break;
+	      }
       }
       max_diff = eval->fEdgeDis[aa][bb] + eval->fEdgeDis[a1][b1] -
-         	 eval->fEdgeDis[a][a1] - eval->fEdgeDis[b][b1];
+         	        eval->fEdgeDis[a][a1] - eval->fEdgeDis[b][b1];
     }  
 
+    // 辺を繋ぎ変える
     if( tKid.fLink[aa][0] == bb ) tKid.fLink[aa][0]=a1;
     else tKid.fLink[aa][1] = a1;
     if( tKid.fLink[bb][0] == aa ) tKid.fLink[bb][0] = b1;
@@ -767,40 +823,45 @@ void TCross::MakeCompleteSol( TIndi& tKid )
     if( tKid.fLink[b1][0] == a1 ) tKid.fLink[b1][0] = bb;
     else tKid.fLink[b1][1] = bb; 
 
-
+    // 繋ぎ変えを記録
     fModiEdge[ fNumOfModiEdge ][ 0 ] = aa;
     fModiEdge[ fNumOfModiEdge ][ 1 ] = bb;
     fModiEdge[ fNumOfModiEdge ][ 2 ] = a1;
     fModiEdge[ fNumOfModiEdge ][ 3 ] = b1;
     ++fNumOfModiEdge;
 
-
+    // 距離の変化を記録
     fGainModi += max_diff;
     
-
+    // center unit と接続したユニット番号を探す
     int posi_a1 = fInv[ a1 ];  
     select_un = -1;
     for( int s = 0; s < fNumOfSeg; ++s ){
       if( fSegment[ s ][ 0 ] <= posi_a1 && posi_a1 <=  fSegment[ s ][ 1 ] ){
-	select_un = fSegUnit[ s ];       
-	break;
+	      select_un = fSegUnit[ s ];
+	      break;
       }
     } 
     assert( select_un != -1 );
 
+    // ユニット番号を統合
     for( int s = 0; s < fNumOfSeg; ++s ){
       if( fSegUnit[ s ] == select_un )
-	fSegUnit[ s ] = center_un;
+	      fSegUnit[ s ] = center_un;
     }
+    // 要素数を統合
     fNumOfElementInUnit[ center_un ] += fNumOfElementInUnit[ select_un ];
     
+    // ユニット番号を書き換える
     for( int s = 0; s < fNumOfSeg; ++s ){
       if( fSegUnit[ s ] == fNumOfUnit - 1 )
-	fSegUnit[ s ] = select_un;
+	      fSegUnit[ s ] = select_un;
     }
+    // 要素数を移動
     fNumOfElementInUnit[ select_un ] = fNumOfElementInUnit[ fNumOfUnit - 1 ];
     --fNumOfUnit;
 
+    // fCenterUnit の値をリセット
     for( int s = 0; s < fNumOfElementInCU; ++s ){
       c = fListOfCenterUnit[ s ];
       fCenterUnit[ c ] = 0;
@@ -811,6 +872,7 @@ void TCross::MakeCompleteSol( TIndi& tKid )
 
 void TCross::MakeUnit()                    
 {
+  // 端で分割されていないか
   int flag = 1; 
   for( int s = 0; s < fNumOfSPL; ++s ){
     if( fSegPosiList[ s ] == 0 ){
@@ -818,26 +880,31 @@ void TCross::MakeUnit()
       break;
     }
   }
-  if( flag == 1 ) 
+  if( flag == 1 ) // 端で分割されていないなら
   {
+    // 端を分割する
     fSegPosiList[ fNumOfSPL++ ] = 0;
 
     LinkBPosi[ fN-1 ][ 1 ]  = LinkBPosi[ fN-1 ][ 0 ];
     LinkBPosi[ 0 ][ 1 ] = LinkBPosi[ 0 ][ 0 ];
-    LinkBPosi[ fN-1 ][ 0 ] = 0; 
+    LinkBPosi[ fN-1 ][ 0 ] = 0;
     LinkBPosi[ 0 ][ 0 ] = fN-1;
 
   }
 
+  // ソートする
   tSort->Sort( fSegPosiList, fNumOfSPL );     
 
 
   fNumOfSeg = fNumOfSPL;
   for( int s = 0; s < fNumOfSeg-1; ++s ){
-    fSegment[ s ][ 0 ] = fSegPosiList[ s ];
-    fSegment[ s ][ 1 ] = fSegPosiList[ s+1 ]-1;
+    fSegment[ s ][ 0 ] = fSegPosiList[ s ]; // segmentの始まり
+    fSegment[ s ][ 1 ] = fSegPosiList[ s+1 ]-1; // segmentの終わり
   }
 
+  // 端で必ず分割されているので、最後のセグメントは
+  // fSegPosiList[ fNumOfSeg-1 ] から N-1 まで
+  // となる
   fSegment[ fNumOfSeg-1 ][ 0 ] = fSegPosiList[ fNumOfSeg-1 ];
   fSegment[ fNumOfSeg-1 ][ 1 ] = fN - 1;
 
@@ -856,19 +923,21 @@ void TCross::MakeUnit()
   int p_st, p1, p2, p_next, p_pre; 
   int segNum;
 
+  // つながっているセグメントに同一のユニット番号を割り当てる
   while(1)
   {
     flag = 0;
+    // セグメントの中で、まだユニットに割り当てられていないものを探す
     for( int s = 0; s < fNumOfSeg; ++s ){
       if( fSegUnit[ s ] == -1 ){
-	p_st = fSegment[ s ][ 0 ]; 
-	p_pre = -1;
-	p1 = p_st;
-	flag = 1;
-	break;
+	      p_st = fSegment[ s ][ 0 ]; 
+	      p_pre = -1;
+	      p1 = p_st;
+	      flag = 1;
+	      break;
       }
     }
-    if( flag == 0 )
+    if( flag == 0 ) // すべてのセグメントがユニットに割り当てられているなら
       break;
     
     while(1)
@@ -879,13 +948,13 @@ void TCross::MakeUnit()
       p2 = LinkAPosi[ p1 ];
       p_next = LinkBPosi[ p2 ][ 0 ];
       if( p1 == p2 ){
-	if( p_next == p_pre )
-	  p_next = LinkBPosi[ p2 ][ 1 ];
+	      if( p_next == p_pre )
+	        p_next = LinkBPosi[ p2 ][ 1 ];
       } 
       
       if( p_next == p_st ){
-	++fNumOfUnit;
-	break;
+	      ++fNumOfUnit;
+	      break;
       }
 
       p_pre = p2;
@@ -900,6 +969,7 @@ void TCross::MakeUnit()
   int unitNum = -1;
   int tmpNumOfSeg = -1;
   for( int s = 0; s < fNumOfSeg; ++s ){
+    // s >= tmpNumOfSeg なので、上書きされることはない
     if( fSegUnit[ s ] != unitNum ){
       ++tmpNumOfSeg;
       fSegment[ tmpNumOfSeg ][ 0 ] = fSegment[ s ][ 0 ];
@@ -907,15 +977,18 @@ void TCross::MakeUnit()
       unitNum = fSegUnit[ s ];
       fSegUnit[ tmpNumOfSeg ] = unitNum;
       fNumOfElementInUnit[ unitNum ] += 
-	fSegment[ s ][ 1 ] - fSegment[ s ][ 0 ] + 1;
+	      fSegment[ s ][ 1 ] - fSegment[ s ][ 0 ] + 1;
     }
     else
     {
+      // セグメントをマージしている?
+      // セグメント内のつながり方は気にしないということ?
       fSegment[ tmpNumOfSeg ][ 1 ] = fSegment[ s ][ 1 ];
       fNumOfElementInUnit[ unitNum ] += 
-	fSegment[ s ][ 1 ] - fSegment[ s ][ 0 ] + 1;
+	      fSegment[ s ][ 1 ] - fSegment[ s ][ 0 ] + 1;
     }
   }
+  // マージ後のセグメント数を設定
   fNumOfSeg = tmpNumOfSeg + 1;  
 }
 

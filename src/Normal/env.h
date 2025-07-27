@@ -75,7 +75,10 @@ public:
 
   int fStagBest;                         /* The number of generations during which no improvement  
                                             is found in the best tour */
-  int fFlagC[ 10 ];                      /* Specify configurations of EAX and selection strategy */
+  /* Specify configurations of EAX and selection strategy */
+  /* Diversity preservation: 1:Greedy, 2:--- , 3:Distance, 4:Entropy (see Section 4) */
+  /* Eset Type: 1:Single-AB, 2:Block2 (see Section 3) */ 
+  int fFlagC[ 10 ];                      
   int fStage;                            /* Current stage */
   int fMaxStagBest;                      /* If fStagBest = fMaxStagBest, proceed to the next stage */
   int fCurNumOfGen1;                     /* Number of generations at which Stage I is terminated */

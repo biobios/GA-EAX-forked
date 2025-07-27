@@ -34,9 +34,15 @@ public:
 		   int flagC[ 10 ], int numOfKids );
   void FormABcycle();                                   /* Store an AB-cycle found */
   void Swap(int &a,int &b);                             /* Swap */ 
-  void ChangeSol( TIndi& tKid, int ABnum, int type );   /* Apply an AB-cycle to an intermediate solution */
-  void MakeCompleteSol( TIndi& tKid );                  /* Step 5 of EAX */
-  void MakeUnit();                                      /* Step 5-1 of EAX */ 
+
+  /* Apply an AB-cycle to an intermediate solution */
+  void ChangeSol( TIndi& tKid, int ABnum, int type );   
+  
+  /* Step 5 of EAX */
+  void MakeCompleteSol( TIndi& tKid );                  
+
+  /* Step 5-1 of EAX */ 
+  void MakeUnit();                                      
   void BackToPa1( TIndi& tKid );                        /* Undo the parent p_A */
   void GoToBest( TIndi& tKid );                         /* Modify tKid to the best offspring solution */
   void IncrementEdgeFreq( int **fEdgeFreq );            /* Increment fEdgeFreq[][] */
@@ -64,12 +70,20 @@ private:
   int exam_flag;
   int **near_data;
   int *koritsu, *bunki, *kori_inv, *bun_inv;
-  int koritsu_many,bunki_many;
+  // FormABCycleで1減る
+  // 辺が2本残っている都市の数?
+  int koritsu_many,
+      bunki_many;
   int st,ci,pr,stock,st_appear;
   int *check_koritsu;
   int *fRoute;
   int flag_st,flag_circle,pr_type;
   int ch_dis;
+  // [0] はABサイクルの長さ
+  // [1] は終点([cem + 1])の都市
+  // [2 ~ cem + 1] はABサイクルの都市
+  // [cem + 2] は始点([0])の都市
+  // [cem + 3] は始点の次([1])の都市
   int **fABcycle;
   int *fPermu;
   int fEvalType;
@@ -84,17 +98,26 @@ private:
   int *fOrd1, *fOrd2; 
 
   // Speed Up Start
+  
+  // fOrder[]: 順序を表す配列(Path)
   int *fOrder;    
+  // fInv[]: Path上での位置を表す配列(Pos)
   int *fInv;      
+  // [0]はセグメントの始まり
+  // [1]はセグメントの終わり
   int **fSegment; 
+  // fSegUnit[]: セグメントに割り当てられたユニット番号(subtour_id)
   int *fSegUnit;  
   		       
   int fNumOfUnit; 
   int fNumOfSeg;  
   int *fSegPosiList;
   int fNumOfSPL;    
+  // beginning_pos or end_pos -> end_pos or beginning_pos
   int *LinkAPosi;   
+  // beginning_pos or end_pos -> beginning_adjacent_pos or end_adjacent_pos
   int **LinkBPosi;  
+  // ID
   int *fPosiSeg;    
   int *fNumOfElementInUnit; 
   int *fCenterUnit;         

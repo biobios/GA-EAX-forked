@@ -6,6 +6,9 @@
 #include <math.h>
 #include <time.h>
 
+/**
+ * @brief 乱数を初期化する
+ */
 extern void InitURandom( int );    
 extern void InitURandom( void );   
 
